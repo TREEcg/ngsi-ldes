@@ -5,8 +5,9 @@
     "target": "es6",
     "moduleResolution": "node",
     "lib": [ "es6" ],
-    "outDir": "lib",
-    "sourceMap": true
+    "outDir": "dist",
+    "sourceMap": true,
+    "declaration": true
   },
   "include": [
     "src/**/*"
