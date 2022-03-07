@@ -11,30 +11,38 @@ interface IConfig {
     timeProperty: string;
     keyValues: boolean;
     enableAuthentication: boolean;
-    clientId: string;
-    clientSecret: string;
-    authorizationWellKnown: string;
+    clientId: string | undefined;
+    clientSecret: string | undefined;
+    authorizationWellKnown: string | undefined;
     scope: string;
 }
 
 let config: IConfig;
 export function getConfig(): IConfig {
     if (!config) {
-        config = {
-            sourceURI: process.env.NGSI_HOST,
-            types: process.env.NGSI_TYPES.split(' '),
-            targetURI: process.env.API_HOST,
-            useTimeAt: process.env.NGSI_USETIMEAT === 'true' ? true : false,
-            temporalLimit: Number(process.env.API_LIMIT),
-            timeProperty: process.env.NGSI_TIMEPROPERTY ? process.env.NGSI_TIMEPROPERTY : "modifiedAt",
-            keyValues: process.env.API_KEYVALUES === 'true' ? true : false,
-            enableAuthentication: process.env.NGSI_ISAUTHENTICATED === 'true' ? true : false,
-            clientId: process.env.NGSI_CLIENT_ID ? process.env.NGSI_CLIENT_ID : undefined,
-            clientSecret: process.env.NGSI_CLIENT_SECRET ? process.env.NGSI_CLIENT_SECRET : undefined,
-            authorizationWellKnown: process.env.NGSI_AUTHORIZATIONWELLKNOWN ? process.env.NGSI_AUTHORIZATIONWELLKNOWN : undefined,
-            scope: process.env.NGSI_SCOPE ? process.env.NGSI_SCOPE : "openid",
-        };
+        if (!process.env.NGSI_HOST
+        || !process.env.NGSI_TYPES) {
+            throw Error("Env variable NGSI_HOST or NGSI_TYPES must be provided.")
+        }
+        else if (process.env.NGSI_ISAUTHENTICATED &&
+            (!process.env.NGSI_CLIENT_ID || !process.env.NGSI_CLIENT_SECRET || !process.env.NGSI_AUTHORIZATIONWELLKNOWN)) {
+            throw Error("Env variables NGSI_CLIENT_ID, NGSI_CLIENT_SECRET and NGSI_AUTHORIZATIONWELLKNOWN must be provided when NGSI_ISAUTHENTICATED is true");
+        } else {
+            config = {
+                sourceURI: process.env.NGSI_HOST,
+                types: process.env.NGSI_TYPES.split(' '),
+                targetURI: process.env.API_HOST ? process.env.API_HOST : "http://example.org/",
+                useTimeAt: process.env.NGSI_USETIMEAT === 'true' ? true : false,
+                temporalLimit: process.env.API_LIMIT ? Number(process.env.API_LIMIT) : 10,
+                timeProperty: process.env.NGSI_TIMEPROPERTY ? process.env.NGSI_TIMEPROPERTY : "modifiedAt",
+                keyValues: process.env.API_KEYVALUES === 'true' ? true : false,
+                enableAuthentication: process.env.NGSI_ISAUTHENTICATED === 'true' ? true : false,
+                clientId: process.env.NGSI_CLIENT_ID ? process.env.NGSI_CLIENT_ID : undefined,
+                clientSecret: process.env.NGSI_CLIENT_SECRET ? process.env.NGSI_CLIENT_SECRET : undefined,
+                authorizationWellKnown: process.env.NGSI_AUTHORIZATIONWELLKNOWN ? process.env.NGSI_AUTHORIZATIONWELLKNOWN : undefined,
+                scope: process.env.NGSI_SCOPE ? process.env.NGSI_SCOPE : "openid",
+            };
+        }
     }
-
     return config;
 }
