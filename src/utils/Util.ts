@@ -1,8 +1,8 @@
 import {getConfig} from "../config/config.js";
 
-export function convertToKeyValues(entity: any) {
+export function convertToKeyValues(entity: any): any {
     // Retrieve entities with options=keyValues
-    const converted = {};
+    const converted: any = {};
     if (!(typeof entity === "object")) { return entity; } else {
         // tslint:disable-next-line:forin
         for (const k in Object.keys(entity)) {

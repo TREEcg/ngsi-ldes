@@ -13,7 +13,7 @@ interface IConfig {
     enableAuthentication: boolean;
     clientId: string | undefined;
     clientSecret: string | undefined;
-    authorizationWellKnown: string | undefined;
+    authorizationWellKnown: string;
     scope: string;
 }
 
@@ -39,7 +39,7 @@ export function getConfig(): IConfig {
                 enableAuthentication: process.env.NGSI_ISAUTHENTICATED === 'true' ? true : false,
                 clientId: process.env.NGSI_CLIENT_ID ? process.env.NGSI_CLIENT_ID : undefined,
                 clientSecret: process.env.NGSI_CLIENT_SECRET ? process.env.NGSI_CLIENT_SECRET : undefined,
-                authorizationWellKnown: process.env.NGSI_AUTHORIZATIONWELLKNOWN ? process.env.NGSI_AUTHORIZATIONWELLKNOWN : undefined,
+                authorizationWellKnown: process.env.NGSI_AUTHORIZATIONWELLKNOWN ? process.env.NGSI_AUTHORIZATIONWELLKNOWN : '',
                 scope: process.env.NGSI_SCOPE ? process.env.NGSI_SCOPE : "openid",
             };
         }

@@ -58,6 +58,28 @@
             "args_handler": {
               "@type": "DcatController"
             }
+          },
+          {
+            "@id": "urn:solid-server:default:HierarchicalViewHandler",
+            "@type": "RouterHandler",
+            "args_baseUrl": {
+              "@id": "urn:solid-server:default:variable:baseUrl",
+              "@type": "Variable"
+            },
+            "args_targetExtractor": {
+              "@id": "urn:solid-server:default:TargetExtractor",
+              "@type": "OriginalUrlExtractor",
+              "options_includeQueryString": true
+            },
+            "args_allowedMethods": [ "GET" ],
+            "args_allowedPathNames": [ "^/hierarchical" ],
+            "args_handler": {
+              "@type": "HierarchicalViewController",
+              "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_fetcher": {
+                "@id": "urn:solid-server:default:OIDCFetcher",
+                "@type": "OIDCFetcher"
+              }
+            }
           }
         ]
       }

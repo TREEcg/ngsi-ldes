@@ -1,4 +1,5 @@
 import {getConfig} from "../config/config.js";
+import {Fetcher} from "../utils/Fetcher";
 
 export default class HierarchicalFragmenter {
 
@@ -14,21 +15,21 @@ export default class HierarchicalFragmenter {
     public static getFragmentWithInterval(type: string, timeAt: Date, endTimeAt: Date): string {
         return `${getConfig().targetURI}/hierarchical?type=${type}&timeAt=${timeAt.toISOString()}&endTimeAt=${endTimeAt.toISOString()}`;
     }
-    private fetch: any; // to fetch
+    private fetcher: Fetcher; // to fetch
     /* Type param of the fragments */
     private type: string;
     /* Limit param of the fragments */
     private limit: number;
     private timeAt: Date;
     private endTimeAt: Date;
-    private entitiesCount: number;
+    private entitiesCount?: number;
 
-    public constructor(fetch: any, type: string, limit: number, timeAt?: Date, endTimeAt?: Date) {
-        this.fetch = fetch;
+    public constructor(fetcher: Fetcher, type: string, limit: number, timeAt: Date, endTimeAt: Date) {
+        this.fetcher = fetcher;
         this.type = type;
         this.limit = limit;
-        if (timeAt) { this.timeAt = timeAt; }
-        if (endTimeAt) { this.endTimeAt = endTimeAt; }
+        this.timeAt = timeAt;
+        this.endTimeAt = endTimeAt;
     }
 
     public isTimeIntervalSpecified(): boolean {
@@ -64,7 +65,7 @@ export default class HierarchicalFragmenter {
             uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=between`
                 + `&time=${this.timeAt.toISOString()}&endTime=${this.endTimeAt.toISOString()}&limit=${this.limit}&timeproperty=${getConfig().timeProperty}&options=sysAttrs`;
         }
-        const response = await this.fetch(uri);
+        const response = await this.fetcher.fetch(uri);
         return await response.json();
     }
 
@@ -103,7 +104,7 @@ export default class HierarchicalFragmenter {
             uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=before`
                 + `&time=${this.timeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&count=true`;
         }
-        const response = await this.fetch(uri);
+        const response = await this.fetcher.fetch(uri);
         return this.getEntitiesCountFromResponse(response);
     }
 
@@ -116,7 +117,7 @@ export default class HierarchicalFragmenter {
             uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=after`
                 + `&endTime=${this.endTimeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&count=true`;
         }
-        const response = await this.fetch(uri);
+        const response = await this.fetcher.fetch(uri);
         return this.getEntitiesCountFromResponse(response);
     }
 
@@ -130,7 +131,7 @@ export default class HierarchicalFragmenter {
                 uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=between`
                     + `&time=${this.timeAt.toISOString()}&endTime=${this.endTimeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&count=true`;
             }
-            const response = await this.fetch(uri);
+            const response = await this.fetcher.fetch(uri);
             const count = this.getEntitiesCountFromResponse(response);
             this.entitiesCount = count;
         }
