@@ -242,7 +242,7 @@ export class HierarchicalViewController extends HttpHandler {
             const pagedData = await this.wrapPage(req, data, hierarchicalFragmenter);
             this.addHeaders(res, hierarchicalFragmenter.isStableFragment());
             res.statusCode = 200;
-            res.write(pagedData);
+            res.write(JSON.stringify(pagedData));
             res.end();
         }
     }
