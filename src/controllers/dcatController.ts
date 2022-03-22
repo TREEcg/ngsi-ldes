@@ -38,22 +38,23 @@ export class DcatController extends HttpHandler {
         const types = getConfig().types;
         console.log(types);
         for (const type of types) {
-            const encodedType = encodeURIComponent(type);
-            const paginatedView = getConfig().targetURI + "/paginated?type=" + encodedType;
-            const hierarchicalView = getConfig().targetURI + "/hierarchical?type=" + encodedType;
+            const encodedType: string = encodeURIComponent(type);
+            const hierarchicalView: string = getConfig().targetURI + "/hierarchical?type=" + encodedType;
+            const datasetURI: string = getConfig().targetURI + "/dataset?type=" + encodedType;
+            const beschrijving: string = `Event Stream van entiteiten van het type: ${type}`;
             const dataset = {
-                "@id": getConfig().targetURI + "/dataset?type=" + encodedType,
+                "@id": datasetURI,
                 "@type": [
                     "Dataset",
                     "ldes:EventStream",
                 ],
-                "tree:view": [ paginatedView, hierarchicalView ],
+                "tree:view": [ hierarchicalView ],
                 "Dataset.titel": {
-                    "@value": "Event Stream van ObservationCollection entiteiten",
+                    "@value": beschrijving,
                     "@language": "nl",
                 },
                 "Dataset.beschrijving": {
-                    "@value": "Event stream van ObservationCollection entiteiten",
+                    "@value": beschrijving,
                     "@language": "nl",
                 },
                 "Dataset.toegankelijkheid": "http://publications.europa.eu/resource/authority/access-right/PUBLIC",

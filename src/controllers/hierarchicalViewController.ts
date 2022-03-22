@@ -1,8 +1,7 @@
-import {Request, Response} from "express";
 import { getConfig } from "../config/config.js";
 import {convertToKeyValues, getLdesURI} from "../utils/Util.js";
 import {RelationParameters, RelationType} from "@treecg/types";
-import HierarchicalFragmenter from "../fragmenters/hierarchical.js";
+import HierarchicalFragmenter from "../fragmenters/hierarchical";
 import {HttpHandler, HttpHandlerInput, HttpRequest, HttpResponse} from "@solid/community-server";
 import * as queryString from 'query-string';
 import {Fetcher} from "../utils/Fetcher";
@@ -26,7 +25,8 @@ export class HierarchicalViewController extends HttpHandler {
         return new Promise((resolve): void => {
             const req = input.request;
             const res = input.response;
-            const queryparams = queryString.parseUrl(<string>req.url);
+            const queryparams = queryString.parseUrl(req.url as string);
+            const baseUrl = queryparams.url; // probably /hierarchical
             const type = queryparams.query.type as string;
             const timeAtString = queryparams.query.timeAt as string;
             const endTimeAtString = queryparams.query.endTimeAt as string;
@@ -36,10 +36,15 @@ export class HierarchicalViewController extends HttpHandler {
                 res.end();
             } else if (!timeAtString || !endTimeAtString) {
                 this.addHeaders(res, false);
-                res.setHeader("Location", HierarchicalFragmenter.getFragmentOfToday(encodeURIComponent(type)));
+                const today = new Date();
+                const tomorrow = new Date(today);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                today.setHours(0, 0, 0, 0);
+                tomorrow.setHours(0, 0, 0, 0);
+                const fragmentOfToday = `${getConfig().targetURI}${baseUrl}?type=${type}&timeAt=${today.toISOString()}&endTimeAt=${tomorrow.toISOString()}`;
+                res.setHeader("Location", fragmentOfToday);
                 res.statusCode = 302;
                 res.end();
-                //res.redirect(HierarchicalFragmenter.getFragmentOfToday(encodeURIComponent(type)));
             } else if ((timeAtString && !Date.parse(timeAtString))
                 || (endTimeAtString && !Date.parse(endTimeAtString))) {
                 res.write("timeAt and endTimeAt query parameters must be valid dates in ISO format.");
@@ -47,16 +52,12 @@ export class HierarchicalViewController extends HttpHandler {
                 res.end();
             } else {
                 // tslint:disable-next-line:max-line-length
-                const hierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, encodeURIComponent(type), getConfig().temporalLimit, new Date(timeAtString), new Date(endTimeAtString));
+                const hierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, baseUrl, encodeURIComponent(type), getConfig().temporalLimit, new Date(timeAtString), new Date(endTimeAtString));
 
                 res.setHeader("Content-Type", "application/ld+json; charset=utf-8");
                 this.getPage(input.request, input.response, hierarchicalFragmenter);
             }
         });
-    }
-
-    canHandle(input: HttpHandlerInput): Promise<void> {
-        return super.canHandle(input);
     }
 
     async wrapPage(
@@ -73,8 +74,7 @@ export class HierarchicalViewController extends HttpHandler {
                 const previousDayTimeAt: Date = new Date(hierarchicalFragmenter.getTimeAt().getTime() - 24 * 60 * 60 * 1000);
                 const previousDayEndTimeAt: Date = hierarchicalFragmenter.getTimeAt();
                 // tslint:disable-next-line:max-line-length
-                const prevDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), previousDayTimeAt, previousDayEndTimeAt);
-                // if (await prevDayFragmenter.getEntitiesCount() > 0) {
+                const prevDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), previousDayTimeAt, previousDayEndTimeAt);
                 relations.push({
                     "type": RelationType.Relation,
                     "nodeId": prevDayFragmenter.getFragmentURI(),
@@ -88,18 +88,18 @@ export class HierarchicalViewController extends HttpHandler {
                     // tslint:disable-next-line:max-line-length
                     const nextDayEndTimeAt: Date = new Date(hierarchicalFragmenter.getEndTimeAt().getTime() + 24 * 60 * 60 * 1000);
                     // tslint:disable-next-line:max-line-length
-                    const nextDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), nextDayTimeAt, nextDayEndTimeAt);
-                    // if (await prevDayFragmenter.getEntitiesCount() > 0) {
+                    const nextDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), nextDayTimeAt, nextDayEndTimeAt);
                     relations.push({
                         "type": RelationType.Relation,
                         "nodeId": nextDayFragmenter.getFragmentURI(),
                         "remainingItems": remainingItemsAfter,
                     });
                 } else {
-                    // refer to today as new entities can still arive
+                    // refer to node of this view where new entities will arive
+                    const latestFragment = hierarchicalFragmenter.getLatestFragment();
                     relations.push({
                         "type": RelationType.Relation,
-                        "nodeId": `${getLdesURI(hierarchicalFragmenter.getType())}`
+                        "nodeId": `${latestFragment}`
                     });
                 }
             }
@@ -121,7 +121,7 @@ export class HierarchicalViewController extends HttpHandler {
                 const endTimeAtNumber: number = +hierarchicalFragmenter.getTimeAt().getTime() + +(intervalTime * (level + 1) / Number(getConfig().temporalLimit));
                 const levelEndTimeAt: Date = new Date(endTimeAtNumber);
                 // tslint:disable-next-line:max-line-length
-                const levelFragment: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), levelTimeAt, levelEndTimeAt);
+                const levelFragment: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), levelTimeAt, levelEndTimeAt);
                 const levelCount = await levelFragment.getEntitiesCount();
                 if (levelCount > 0) {
                     relations.push({
@@ -224,8 +224,7 @@ export class HierarchicalViewController extends HttpHandler {
             // Redirect to today when no interval is specified
             this.addHeaders(res, false);
             res.statusCode = 302;
-            res.setHeader("Location", HierarchicalFragmenter.getFragmentOfToday(hierarchicalFragmenter.getType()));
-            //res.redirect(HierarchicalFragmenter.getFragmentOfToday(hierarchicalFragmenter.getType()));
+            res.setHeader("Location", hierarchicalFragmenter.getFragmentOfToday());
             res.end();
         } else {
             const count: number = await hierarchicalFragmenter.getEntitiesCount();

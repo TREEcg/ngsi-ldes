@@ -3,19 +3,8 @@ import {Fetcher} from "../utils/Fetcher";
 
 export default class HierarchicalFragmenter {
 
-    public static getFragmentOfToday(type: string): string {
-        const today = new Date();
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        today.setHours(0, 0, 0, 0);
-        tomorrow.setHours(0, 0, 0, 0);
-        return HierarchicalFragmenter.getFragmentWithInterval(type, today, tomorrow);
-    }
-
-    public static getFragmentWithInterval(type: string, timeAt: Date, endTimeAt: Date): string {
-        return `${getConfig().targetURI}/hierarchical?type=${type}&timeAt=${timeAt.toISOString()}&endTimeAt=${endTimeAt.toISOString()}`;
-    }
     private fetcher: Fetcher; // to fetch
+    private baseUrl: string;
     /* Type param of the fragments */
     private type: string;
     /* Limit param of the fragments */
@@ -24,14 +13,26 @@ export default class HierarchicalFragmenter {
     private endTimeAt: Date;
     private entitiesCount?: number;
 
-    public constructor(fetcher: Fetcher, type: string, limit: number, timeAt: Date, endTimeAt: Date) {
+    public constructor(fetcher: Fetcher, baseUrl: string, type: string, limit: number, timeAt: Date, endTimeAt: Date) {
         this.fetcher = fetcher;
+        this.baseUrl = baseUrl;
         this.type = type;
         this.limit = limit;
         this.timeAt = timeAt;
         this.endTimeAt = endTimeAt;
     }
 
+    public getFragmentOfToday(): string {
+        const today = new Date();
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        today.setHours(0, 0, 0, 0);
+        tomorrow.setHours(0, 0, 0, 0);
+        return this.getFragmentWithInterval(today, tomorrow);
+    }
+    public getFragmentWithInterval(timeAt: Date, endTimeAt: Date): string {
+        return `${getConfig().targetURI}${this.baseUrl}?type=${this.type}&timeAt=${timeAt.toISOString()}&endTimeAt=${endTimeAt.toISOString()}`;
+    }
     public isTimeIntervalSpecified(): boolean {
         return this.timeAt !== undefined && this.endTimeAt !== undefined;
     }
@@ -75,8 +76,12 @@ export default class HierarchicalFragmenter {
     }
 
     public getFragmentURI(): string {
-        const nodeId: string = `${getConfig().targetURI}/hierarchical?type=${this.type}&timeAt=${this.timeAt.toISOString()}&endTimeAt=${this.endTimeAt.toISOString()}`;
+        const nodeId: string = `${getConfig().targetURI}${this.baseUrl}?type=${this.type}&timeAt=${this.timeAt.toISOString()}&endTimeAt=${this.endTimeAt.toISOString()}`;
         return nodeId;
+    }
+
+    public getLatestFragment(): string {
+        return `${getConfig().targetURI}${this.baseUrl}?type=${this.type}`;
     }
 
     public getTimeAt(): Date {
@@ -89,6 +94,10 @@ export default class HierarchicalFragmenter {
 
     public getType(): string {
         return this.type;
+    }
+
+    public getBaseUrl(): string {
+        return this.baseUrl;
     }
 
     public getLimit(): number {
