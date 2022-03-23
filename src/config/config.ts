@@ -7,6 +7,7 @@ interface IConfig {
     types: string[];
     targetURI: string;
     useTimeAt: boolean;
+    useCountIsTrue: boolean;
     temporalLimit: number;
     timeProperty: string;
     keyValues: boolean;
@@ -33,6 +34,7 @@ export function getConfig(): IConfig {
                 types: process.env.NGSI_TYPES.split(' '),
                 targetURI: process.env.API_HOST ? process.env.API_HOST : "http://example.org/",
                 useTimeAt: process.env.NGSI_USETIMEAT === 'true' ? true : false,
+                useCountIsTrue: process.env.NGSI_USECOUNTISTRUE === 'true' ? true : false,
                 temporalLimit: process.env.API_LIMIT ? Number(process.env.API_LIMIT) : 10,
                 timeProperty: process.env.NGSI_TIMEPROPERTY ? process.env.NGSI_TIMEPROPERTY : "modifiedAt",
                 keyValues: process.env.API_KEYVALUES === 'true' ? true : false,

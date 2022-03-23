@@ -9,12 +9,19 @@ This way, consumers can easily replicate and synchronize with the entities provi
 Instead of providing expensive services, such as filtering, to the consumer, NGSI-LDES splits the data into cacheable Web documents.
 Such a document contains a fragment of the context broker's data and is linked with TREE hypermedia links towards other fragments.
 
+# Requirements
+
+- NGSI-LD temporal interface
+- Support for count parameter
+
 ## Get started
 
 Rename `.env.example` to `.env` and fill in the variables.
 Note that NGSI_TYPES requires a list of types.
 You need to surround the string with double quotes when running locally.
 When using Docker, remove the double quotes.
+
+Also add the correct baseUrl and port to `bin/server.js`
 
 ```
 git clone git@github.com:TREEcg/ngsi-ldes.git

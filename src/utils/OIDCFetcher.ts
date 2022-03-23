@@ -3,8 +3,9 @@
  */
 import fetch, {RequestInfo, RequestInit, Response} from "node-fetch";
 import issuer from "../utils/OpenIdIssuer";
-
 import {getConfig} from "../config/config.js";
+
+
 const config = getConfig();
 
 export class OIDCFetcher {

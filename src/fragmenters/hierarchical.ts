@@ -132,10 +132,17 @@ export default class HierarchicalFragmenter {
 
     public async getEntitiesCount(): Promise<number> {
         if (!this.entitiesCount) {
+            const config = getConfig();
             let uri;
-            if (getConfig().useTimeAt) {
+            if (getConfig().useTimeAt && getConfig().useCountIsTrue) {
                 uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=between`
                     + `&timeAt=${this.timeAt.toISOString()}&endTimeAt=${this.endTimeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&count=true`;
+            } else if (getConfig().useTimeAt && !getConfig().useCountIsTrue) {
+                uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=between`
+                    + `&timeAt=${this.timeAt.toISOString()}&endTimeAt=${this.endTimeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&options=count`;
+            } else if (!getConfig().useTimeAt && !getConfig().useCountIsTrue) {
+                uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=between`
+                    + `&time=${this.timeAt.toISOString()}&endTime=${this.endTimeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&options=count`;
             } else {
                 uri = `${getConfig().sourceURI}/temporal/entities?type=${this.type}&timerel=between`
                     + `&time=${this.timeAt.toISOString()}&endTime=${this.endTimeAt.toISOString()}&timeproperty=${getConfig().timeProperty}&limit=0&options=sysAttrs&count=true`;
