@@ -41,7 +41,7 @@ export class HierarchicalViewController extends HttpHandler {
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 today.setHours(0, 0, 0, 0);
                 tomorrow.setHours(0, 0, 0, 0);
-                const fragmentOfToday = `${getConfig().targetURI}${baseUrl}?type=${type}&timeAt=${today.toISOString()}&endTimeAt=${tomorrow.toISOString()}`;
+                const fragmentOfToday = `${getConfig().targetURI}${baseUrl}?type=${encodeURIComponent(type)}&timeAt=${today.toISOString()}&endTimeAt=${tomorrow.toISOString()}`;
                 res.setHeader("Location", fragmentOfToday);
                 res.statusCode = 302;
                 res.end();
