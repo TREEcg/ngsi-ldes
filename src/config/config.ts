@@ -1,11 +1,9 @@
 import dotenv from "dotenv";
-
 dotenv.config();
 
 interface IConfig {
     sourceURI: string;
     types: string[];
-    targetURI: string;
     useTimeAt: boolean;
     useCountIsTrue: boolean;
     temporalLimit: number;
@@ -32,7 +30,6 @@ export function getConfig(): IConfig {
             config = {
                 sourceURI: process.env.NGSI_HOST,
                 types: process.env.NGSI_TYPES.split(' '),
-                targetURI: process.env.API_HOST ? process.env.API_HOST : "http://example.org/",
                 useTimeAt: process.env.NGSI_USETIMEAT === 'true' ? true : false,
                 useCountIsTrue: process.env.NGSI_USECOUNTISTRUE === 'true' ? true : false,
                 temporalLimit: process.env.API_LIMIT ? Number(process.env.API_LIMIT) : 10,

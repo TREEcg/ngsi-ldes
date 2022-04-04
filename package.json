@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "start": "node bin/server.js dotenv_config_path=./.env",
+    "start": "node bin/server.js",
     "watch-node": "nodemon lib/*",
     "serve-debug": "nodemon --inspect lib/app.js",
     "lint": "tslint --project .",

@@ -5,20 +5,27 @@ import HierarchicalFragmenter from "../fragmenters/hierarchical";
 import {HttpHandler, HttpHandlerInput, HttpRequest, HttpResponse} from "@solid/community-server";
 import * as queryString from 'query-string';
 import {Fetcher} from "../utils/Fetcher";
+import {query} from "express";
 
 export interface HierarchicalViewControllerArgs {
     /**
      * Fetcher to use
      */
     fetcher: Fetcher;
+    /**
+     * Base URL of the server
+     */
+    baseUrl: string;
 }
 
 export class HierarchicalViewController extends HttpHandler {
     private readonly fetcher: Fetcher;
+    private readonly baseUrl: string;
 
     public constructor(args: HierarchicalViewControllerArgs) {
         super();
         this.fetcher = args.fetcher;
+        this.baseUrl = args.baseUrl;
     }
 
     handle(input: HttpHandlerInput): Promise<void> {
@@ -26,7 +33,7 @@ export class HierarchicalViewController extends HttpHandler {
             const req = input.request;
             const res = input.response;
             const queryparams = queryString.parseUrl(req.url as string);
-            const baseUrl = queryparams.url; // probably /hierarchical
+            const basePath = queryparams.url.indexOf('/') === 0 ? queryparams.url.substring(1) : queryparams.url; // probably /hierarchical
             const type = queryparams.query.type as string;
             const timeAtString = queryparams.query.timeAt as string;
             const endTimeAtString = queryparams.query.endTimeAt as string;
@@ -41,7 +48,7 @@ export class HierarchicalViewController extends HttpHandler {
                 tomorrow.setDate(tomorrow.getDate() + 1);
                 today.setHours(0, 0, 0, 0);
                 tomorrow.setHours(0, 0, 0, 0);
-                const fragmentOfToday = `${getConfig().targetURI}${baseUrl}?type=${encodeURIComponent(type)}&timeAt=${today.toISOString()}&endTimeAt=${tomorrow.toISOString()}`;
+                const fragmentOfToday = `${this.baseUrl}${basePath}?type=${encodeURIComponent(type)}&timeAt=${today.toISOString()}&endTimeAt=${tomorrow.toISOString()}`;
                 res.setHeader("Location", fragmentOfToday);
                 res.statusCode = 302;
                 res.end();
@@ -52,7 +59,7 @@ export class HierarchicalViewController extends HttpHandler {
                 res.end();
             } else {
                 // tslint:disable-next-line:max-line-length
-                const hierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, baseUrl, encodeURIComponent(type), getConfig().temporalLimit, new Date(timeAtString), new Date(endTimeAtString));
+                const hierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, this.baseUrl, basePath, encodeURIComponent(type), getConfig().temporalLimit, new Date(timeAtString), new Date(endTimeAtString));
 
                 res.setHeader("Content-Type", "application/ld+json; charset=utf-8");
                 this.getPage(input.request, input.response, hierarchicalFragmenter);
@@ -74,7 +81,7 @@ export class HierarchicalViewController extends HttpHandler {
                 const previousDayTimeAt: Date = new Date(hierarchicalFragmenter.getTimeAt().getTime() - 24 * 60 * 60 * 1000);
                 const previousDayEndTimeAt: Date = hierarchicalFragmenter.getTimeAt();
                 // tslint:disable-next-line:max-line-length
-                const prevDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), previousDayTimeAt, previousDayEndTimeAt);
+                const prevDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getBasePath(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), previousDayTimeAt, previousDayEndTimeAt);
                 relations.push({
                     "type": RelationType.Relation,
                     "nodeId": prevDayFragmenter.getFragmentURI(),
@@ -88,7 +95,7 @@ export class HierarchicalViewController extends HttpHandler {
                     // tslint:disable-next-line:max-line-length
                     const nextDayEndTimeAt: Date = new Date(hierarchicalFragmenter.getEndTimeAt().getTime() + 24 * 60 * 60 * 1000);
                     // tslint:disable-next-line:max-line-length
-                    const nextDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), nextDayTimeAt, nextDayEndTimeAt);
+                    const nextDayFragmenter: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getBasePath(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), nextDayTimeAt, nextDayEndTimeAt);
                     relations.push({
                         "type": RelationType.Relation,
                         "nodeId": nextDayFragmenter.getFragmentURI(),
@@ -121,7 +128,7 @@ export class HierarchicalViewController extends HttpHandler {
                 const endTimeAtNumber: number = +hierarchicalFragmenter.getTimeAt().getTime() + +(intervalTime * (level + 1) / Number(getConfig().temporalLimit));
                 const levelEndTimeAt: Date = new Date(endTimeAtNumber);
                 // tslint:disable-next-line:max-line-length
-                const levelFragment: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), levelTimeAt, levelEndTimeAt);
+                const levelFragment: HierarchicalFragmenter = new HierarchicalFragmenter(this.fetcher, hierarchicalFragmenter.getBaseUrl(), hierarchicalFragmenter.getBasePath(), hierarchicalFragmenter.getType(), hierarchicalFragmenter.getLimit(), levelTimeAt, levelEndTimeAt);
                 const levelCount = await levelFragment.getEntitiesCount();
                 if (levelCount > 0) {
                     relations.push({
@@ -175,7 +182,7 @@ export class HierarchicalViewController extends HttpHandler {
             "@id": hierarchicalFragmenter.getFragmentURI(),
             "@type": "tree:Node",
             "viewOf": {
-                "@id": `${getLdesURI(hierarchicalFragmenter.getType())}`,
+                "@id": `${getLdesURI(this.baseUrl, hierarchicalFragmenter.getType())}`,
                 "@type": "ldes:EventStream",
             },
             "tree:relation": relations,
@@ -234,7 +241,7 @@ export class HierarchicalViewController extends HttpHandler {
             } else {
                 data = await hierarchicalFragmenter.getData();
                 if (getConfig().keyValues) { data = this.removePropertyGraph(data); }
-                const ldesURI = getLdesURI(hierarchicalFragmenter.getType());
+                const ldesURI = getLdesURI(this.baseUrl, hierarchicalFragmenter.getType());
                 this.addMemberMetadata(data, ldesURI);
             }
             // Add metadata to the resulting data

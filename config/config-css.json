@@ -56,7 +56,11 @@
             "args_allowedMethods": [ "GET" ],
             "args_allowedPathNames": [ "^/$", "^/dcat", "^/dataset.*$" ],
             "args_handler": {
-              "@type": "DcatController"
+              "@type": "DcatController",
+              "tnl:dist/controllers/dcatController#DcatController_args_baseUrl": {
+                "@id": "urn:solid-server:default:variable:baseUrl",
+                "@type": "Variable"
+              }
             }
           },
           {
@@ -78,6 +82,10 @@
               "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_fetcher": {
                 "@id": "urn:solid-server:default:OIDCFetcher",
                 "@type": "OIDCFetcher"
+              },
+              "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_baseUrl": {
+                "@id": "urn:solid-server:default:variable:baseUrl",
+                "@type": "Variable"
               }
             }
           }

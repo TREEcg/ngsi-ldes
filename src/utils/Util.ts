@@ -44,7 +44,7 @@ export function convertToKeyValues(entity: any): any {
     return converted;
 }
 
-export function getLdesURI(type: string) {
-    return getConfig().targetURI + "/dataset?type=" + type;
+export function getLdesURI(baseUrl: string, type: string) {
+    return baseUrl + "/dataset?type=" + type;
 }
 

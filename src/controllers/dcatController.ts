@@ -1,7 +1,23 @@
 import { getConfig } from "../config/config.js";
 import {HttpHandler, HttpHandlerInput, HttpRequest, HttpResponse} from "@solid/community-server";
+import {HierarchicalViewControllerArgs} from "./hierarchicalViewController";
+import {Fetcher} from "../utils/Fetcher";
+
+export interface DcatControllerArgs {
+    /**
+     * Base URL of the server
+     */
+    baseUrl: string;
+}
 
 export class DcatController extends HttpHandler {
+    private readonly baseUrl: string;
+
+    public constructor(args: DcatControllerArgs) {
+        super();
+        this.baseUrl = args.baseUrl;
+    }
+
     handle(input: HttpHandlerInput): Promise<void> {
         return this.getDcatPage(input.request, input.response);
     }
@@ -19,7 +35,7 @@ export class DcatController extends HttpHandler {
                     "@type": "@id"
                 }
             }],
-            "@id": getConfig().targetURI + "/dcat/ngsi-ldes",
+            "@id": this.baseUrl + "/dcat/ngsi-ldes",
             "@type": "Datasetcatalogus",
             "Datasetcatalogus.titel": {
                 "@value": "Catalogus NGSI-LDES",
@@ -39,8 +55,8 @@ export class DcatController extends HttpHandler {
         console.log(types);
         for (const type of types) {
             const encodedType: string = encodeURIComponent(type);
-            const hierarchicalView: string = getConfig().targetURI + "/hierarchical?type=" + encodedType;
-            const datasetURI: string = getConfig().targetURI + "/dataset?type=" + encodedType;
+            const hierarchicalView: string = this.baseUrl + "hierarchical?type=" + encodedType;
+            const datasetURI: string = this.baseUrl + "dataset?type=" + encodedType;
             const beschrijving: string = `Event Stream van entiteiten van het type: ${type}`;
             const dataset = {
                 "@id": datasetURI,
