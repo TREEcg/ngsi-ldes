@@ -35,7 +35,7 @@ export class DcatController extends HttpHandler {
                     "@type": "@id"
                 }
             }],
-            "@id": this.baseUrl + "/dcat/ngsi-ldes",
+            "@id": this.baseUrl + "dcat/ngsi-ldes",
             "@type": "Datasetcatalogus",
             "Datasetcatalogus.titel": {
                 "@value": "Catalogus NGSI-LDES",

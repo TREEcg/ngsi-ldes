@@ -13,7 +13,7 @@ export interface HierarchicalViewControllerArgs {
      */
     fetcher: Fetcher;
     /**
-     * Base URL of the server
+     * Base URL of the fragments
      */
     baseUrl: string;
 }

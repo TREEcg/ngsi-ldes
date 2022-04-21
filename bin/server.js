@@ -1,7 +1,9 @@
 const ComponentsManager = require('componentsjs').ComponentsManager;
-require('dotenv').config()
-const baseUrl = process.env.BASE_URL ? process.env.BASE_URL : "http://localhost:3001/";
-const port = process.env.PORT ? process.env.PORT : "3001";
+require('dotenv').config();
+
+const baseUrl = process.env.SERVER_BASE_URL ? process.env.SERVER_BASE_URL : "http://localhost:3001/";
+const port = process.env.SERVER_PORT ? process.env.SERVER_PORT : "3001";
+const publicBaseUrl = process.env.PUBLIC_BASE_URL ? process.env.PUBLIC_BASE_URL : baseUrl;
 
 start();
 
@@ -14,7 +16,8 @@ async function start() {
         variables: {
             "urn:solid-server:default:variable:baseUrl": baseUrl,
             "urn:solid-server:default:variable:port": port,
-            "urn:solid-server:default:variable:loggingLevel": "info"
+            "urn:solid-server:default:variable:loggingLevel": "info",
+            "urn:solid-server:default:variable:publicBaseUrl": publicBaseUrl
         }
     });
     myInstance.start();
