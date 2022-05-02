@@ -35,3 +35,12 @@ docker build -t ngsi-ldes .
 docker run --env-file .env -p 3001:3001 -d ngsi-ldes
 ```
 Go to `http://localhost:3001` to have a DCAT overview of LDESs.
+
+## Example setup with Scorpio
+
+You can test a full setup with Scorpio using Docker compose:
+```
+docker-compose -f scorpio-aaio.yml up
+```
+Note that the environment variables are configurable inside this yaml file.
+Go to `http://localhost:3001` to have a DCAT overview of LDESs.
