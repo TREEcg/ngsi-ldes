@@ -1,9 +1,21 @@
 import {getConfig} from "../config/config.js";
 
+function entityIsArrayWithObjects(entity: any) {
+    if (Array.isArray(entity)) {
+        for (const e of entity) {
+            if (typeof e === "object") {
+                return false;
+            }
+        }
+    } else {
+        return false;
+    }
+}
+
 export function convertToKeyValues(entity: any): any {
     // Retrieve entities with options=keyValues
     const converted: any = {};
-    if (!(typeof entity === "object")) { return entity; } else {
+    if (!(typeof entity === "object") || (Array.isArray(entity) && !entityIsArrayWithObjects(entity))) { return entity; } else {
         // tslint:disable-next-line:forin
         for (const k in Object.keys(entity)) {
             try {
@@ -29,6 +41,8 @@ export function convertToKeyValues(entity: any): any {
                             } else {
                                 converted[Object.keys(entity)[k]].push(convertToKeyValues(a));
                             }
+                        } else {
+                            converted[Object.keys(entity)[k]].push(a);
                         }
                     }
                 } else if (typeof entity[Object.keys(entity)[k]] === "object") {
@@ -45,6 +59,6 @@ export function convertToKeyValues(entity: any): any {
 }
 
 export function getLdesURI(baseUrl: string, type: string) {
-    return baseUrl + "/dataset?type=" + type;
+    return baseUrl + "dataset?type=" + type;
 }
 
