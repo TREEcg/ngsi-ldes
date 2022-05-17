@@ -9,6 +9,8 @@ interface IConfig {
     temporalLimit: number;
     timeProperty: string;
     keyValues: boolean;
+    enableVersioning: boolean;
+    versionOfPath: string;
     enableAuthentication: boolean;
     clientId: string | undefined;
     clientSecret: string | undefined;
@@ -35,6 +37,8 @@ export function getConfig(): IConfig {
                 temporalLimit: process.env.API_LIMIT ? Number(process.env.API_LIMIT) : 10,
                 timeProperty: process.env.NGSI_TIMEPROPERTY ? process.env.NGSI_TIMEPROPERTY : "modifiedAt",
                 keyValues: process.env.API_KEYVALUES === 'true' ? true : false,
+                enableVersioning: process.env.API_ENABLE_VERSIONING === 'true' ? true : false,
+                versionOfPath: process.env.API_VERSION_OF_PATH ? process.env.API_VERSION_OF_PATH : "dcterms:isVersionOf",
                 enableAuthentication: process.env.NGSI_ISAUTHENTICATED === 'true' ? true : false,
                 clientId: process.env.NGSI_CLIENT_ID ? process.env.NGSI_CLIENT_ID : undefined,
                 clientSecret: process.env.NGSI_CLIENT_SECRET ? process.env.NGSI_CLIENT_SECRET : undefined,

@@ -62,3 +62,20 @@ export function getLdesURI(baseUrl: string, type: string) {
     return baseUrl + "dataset?type=" + type;
 }
 
+export function convertToVersionedObject(entity: any, keyValues: boolean, timeProperty: string, versionOfPath: string): any {
+    let converted: any = {};
+    converted = JSON.parse(JSON.stringify(entity));
+    let timePropertyValue: string;
+    // Get timestamp of object
+    timePropertyValue = entity[timeProperty];
+    // Make id of object versioned with timestamp
+    converted.id = `${entity.id}/${timePropertyValue}`;
+    // Add version path
+    if (keyValues) converted[versionOfPath] = entity.id;
+    else converted[versionOfPath] = {
+        "type": "Relationship",
+        "object": entity.id
+    }
+    return converted;
+}
+

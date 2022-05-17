@@ -1,5 +1,5 @@
 import { getConfig } from "../config/config.js";
-import {convertToKeyValues, getLdesURI} from "../utils/Util.js";
+import {convertToKeyValues, convertToVersionedObject, getLdesURI} from "../utils/Util.js";
 import {RelationParameters, RelationType} from "@treecg/types";
 import HierarchicalFragmenter from "../fragmenters/hierarchical";
 import {HttpHandler, HttpHandlerInput, HttpRequest, HttpResponse} from "@solid/community-server";
@@ -173,6 +173,9 @@ export class HierarchicalViewController extends HttpHandler {
                 "tree:path": {
                     "@type": "@id",
                 },
+                "dcterms:isVersionOf": {
+                    "@type": "@id",
+                },
             },
         ];
 
@@ -205,6 +208,24 @@ export class HierarchicalViewController extends HttpHandler {
             dataInKeyValues = convertToKeyValues(data);
         }
         return dataInKeyValues;
+    }
+
+    enableVersioning(data: any) {
+        // Create version objects
+        let dataWithVersionObjects: any;
+        const timeProperty = getConfig().timeProperty;
+        const versionOfPath = getConfig().versionOfPath;
+        const keyValues = getConfig().keyValues;
+        if (Array.isArray(data)) {
+            dataWithVersionObjects = [];
+            // tslint:disable-next-line:forin
+            for (const entity of data) {
+                dataWithVersionObjects.push(convertToVersionedObject(entity, keyValues, timeProperty, versionOfPath));
+            }
+        } else {
+            dataWithVersionObjects = convertToVersionedObject(data, keyValues, timeProperty, versionOfPath);
+        }
+        return dataWithVersionObjects;
     }
 
     addMemberMetadata(data: any, ldesURI: string) {
@@ -241,6 +262,7 @@ export class HierarchicalViewController extends HttpHandler {
             } else {
                 data = await hierarchicalFragmenter.getData();
                 if (getConfig().keyValues) { data = this.removePropertyGraph(data); }
+                if (getConfig().enableVersioning) { data = this.enableVersioning(data); }
                 const ldesURI = getLdesURI(this.baseUrl, hierarchicalFragmenter.getType());
                 this.addMemberMetadata(data, ldesURI);
             }
