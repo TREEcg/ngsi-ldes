@@ -1,0 +1,96 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^3.0.0/components/context.jsonld",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/ngsi-ldes/^0.0.0/components/context.jsonld"
+  ],
+  "import": [
+    "files-scs:config/app/main/default.json"
+  ],
+  "@graph": [
+    {
+    "comment": "These initializers will be all be executed sequentially when starting the server.",
+    "@id": "urn:solid-server:default:Initializer",
+    "@type": "SequenceHandler",
+    "handlers": [
+      { "@id": "urn:solid-server:default:LoggerInitializer",
+        "@type": "LoggerInitializer",
+        "loggerFactory": {
+          "comment": "Uses the winston library for logging",
+          "@id": "urn:solid-server:default:LoggerFactory",
+          "@type": "WinstonLoggerFactory",
+          "level": {
+            "@id": "urn:solid-server:default:variable:loggingLevel",
+            "@type":  "Variable"
+          }
+        }
+      },
+      { "@id": "urn:solid-server:default:ServerInitializer",
+        "@type": "ServerInitializer",
+        "serverFactory": { "@id": "urn:solid-server:default:ServerFactory" },
+        "port": {
+          "@id": "urn:solid-server:default:variable:port",
+          "@type": "Variable"
+        }
+      }
+    ]},
+    {
+      "comment": "Creates a server that supports HTTP requests.",
+      "@id": "urn:solid-server:default:ServerFactory",
+      "@type": "BaseHttpServerFactory",
+      "handler": {
+        "@id": "urn:solid-server:default:HttpHandler",
+        "@type": "WaterfallHandler",
+        "handlers": [
+          {
+            "@id": "urn:solid-server:default:DcatHandler",
+            "@type": "RouterHandler",
+            "args_baseUrl": {
+              "@id": "urn:solid-server:default:variable:baseUrl",
+              "@type": "Variable"
+            },
+            "args_targetExtractor": {
+              "@id": "urn:solid-server:default:TargetExtractor",
+              "@type": "OriginalUrlExtractor",
+              "options_includeQueryString": true
+            },
+            "args_allowedMethods": [ "GET" ],
+            "args_allowedPathNames": [ "^/$", "^/dcat", "^/dataset.*$" ],
+            "args_handler": {
+              "@type": "DcatController",
+              "tnl:dist/controllers/dcatController#DcatController_args_baseUrl": {
+                "@id": "urn:solid-server:default:variable:publicBaseUrl",
+                "@type": "Variable"
+              }
+            }
+          },
+          {
+            "@id": "urn:solid-server:default:HierarchicalViewHandler",
+            "@type": "RouterHandler",
+            "args_baseUrl": {
+              "@id": "urn:solid-server:default:variable:baseUrl",
+              "@type": "Variable"
+            },
+            "args_targetExtractor": {
+              "@id": "urn:solid-server:default:TargetExtractor",
+              "@type": "OriginalUrlExtractor",
+              "options_includeQueryString": true
+            },
+            "args_allowedMethods": [ "GET" ],
+            "args_allowedPathNames": [ "^/hierarchical" ],
+            "args_handler": {
+              "@type": "HierarchicalViewController",
+              "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_fetcher": {
+                "@id": "urn:solid-server:default:fetcher",
+                "@type": "Variable"
+              },
+              "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_baseUrl": {
+                "@id": "urn:solid-server:default:variable:publicBaseUrl",
+                "@type": "Variable"
+              }
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

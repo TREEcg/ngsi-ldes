@@ -1,0 +1,10 @@
+{
+  "@context": [
+    "https://linkedsoftwaredependencies.org/bundles/npm/componentsjs/^5.0.0/components/context.jsonld",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/ngsi-ldes/^0.0.0/components/context.jsonld",
+    { "ex": "http://example.org/" }
+  ],
+  "@id": "urn:ngsi-ldes-server:default:App",
+  "@type": "App",
+  "comment": "This is the entry point to the application."
+}

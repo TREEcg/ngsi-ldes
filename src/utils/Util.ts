@@ -1,9 +1,21 @@
 import {getConfig} from "../config/config.js";
 
-export function convertToKeyValues(entity: any) {
+function entityIsArrayWithObjects(entity: any) {
+    if (Array.isArray(entity)) {
+        for (const e of entity) {
+            if (typeof e === "object") {
+                return false;
+            }
+        }
+    } else {
+        return false;
+    }
+}
+
+export function convertToKeyValues(entity: any): any {
     // Retrieve entities with options=keyValues
-    const converted = {};
-    if (!(typeof entity === "object")) { return entity; } else {
+    const converted: any = {};
+    if (!(typeof entity === "object") || (Array.isArray(entity) && !entityIsArrayWithObjects(entity))) { return entity; } else {
         // tslint:disable-next-line:forin
         for (const k in Object.keys(entity)) {
             try {
@@ -29,6 +41,8 @@ export function convertToKeyValues(entity: any) {
                             } else {
                                 converted[Object.keys(entity)[k]].push(convertToKeyValues(a));
                             }
+                        } else {
+                            converted[Object.keys(entity)[k]].push(a);
                         }
                     }
                 } else if (typeof entity[Object.keys(entity)[k]] === "object") {
@@ -44,7 +58,24 @@ export function convertToKeyValues(entity: any) {
     return converted;
 }
 
-export function getLdesURI(type: string) {
-    return getConfig().targetURI + "/dataset?type=" + type;
+export function getLdesURI(baseUrl: string, type: string) {
+    return baseUrl + "dataset?type=" + type;
+}
+
+export function convertToVersionedObject(entity: any, keyValues: boolean, timeProperty: string, versionOfPath: string): any {
+    let converted: any = {};
+    converted = JSON.parse(JSON.stringify(entity));
+    let timePropertyValue: string;
+    // Get timestamp of object
+    timePropertyValue = entity[timeProperty];
+    // Make id of object versioned with timestamp
+    converted.id = `${entity.id}/${timePropertyValue}`;
+    // Add version path
+    if (keyValues) converted[versionOfPath] = entity.id;
+    else converted[versionOfPath] = {
+        "type": "Relationship",
+        "object": entity.id
+    }
+    return converted;
 }
 
