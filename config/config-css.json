@@ -80,8 +80,8 @@
             "args_handler": {
               "@type": "HierarchicalViewController",
               "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_fetcher": {
-                "@id": "urn:solid-server:default:OIDCFetcher",
-                "@type": "OIDCFetcher"
+                "@id": "urn:solid-server:default:fetcher",
+                "@type": "Variable"
               },
               "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_baseUrl": {
                 "@id": "urn:solid-server:default:variable:publicBaseUrl",

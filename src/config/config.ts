@@ -16,6 +16,10 @@ interface IConfig {
     clientSecret: string | undefined;
     authorizationWellKnown: string;
     scope: string;
+    xApiKey: string | undefined;
+    serverBaseUrl: string;
+    serverPort: number;
+    publicBaseUrl: string;
 }
 
 let config: IConfig;
@@ -26,8 +30,11 @@ export function getConfig(): IConfig {
             throw Error("Env variable NGSI_HOST or NGSI_TYPES must be provided.")
         }
         else if (process.env.NGSI_ISAUTHENTICATED &&
-            (!process.env.NGSI_CLIENT_ID || !process.env.NGSI_CLIENT_SECRET || !process.env.NGSI_AUTHORIZATIONWELLKNOWN)) {
-            throw Error("Env variables NGSI_CLIENT_ID, NGSI_CLIENT_SECRET and NGSI_AUTHORIZATIONWELLKNOWN must be provided when NGSI_ISAUTHENTICATED is true");
+            (
+                (!process.env.NGSI_CLIENT_ID || !process.env.NGSI_CLIENT_SECRET || !process.env.NGSI_AUTHORIZATIONWELLKNOWN)
+                &&  (!process.env.NGSI_X_API_KEY)
+            )) {
+            throw Error("NGSI_ISAUTHENTICATED is true, so env variables NGSI_CLIENT_ID, NGSI_CLIENT_SECRET and NGSI_AUTHORIZATIONWELLKNOWN must be provided OR an X-API-Key");
         } else {
             config = {
                 sourceURI: process.env.NGSI_HOST,
@@ -44,6 +51,10 @@ export function getConfig(): IConfig {
                 clientSecret: process.env.NGSI_CLIENT_SECRET ? process.env.NGSI_CLIENT_SECRET : undefined,
                 authorizationWellKnown: process.env.NGSI_AUTHORIZATIONWELLKNOWN ? process.env.NGSI_AUTHORIZATIONWELLKNOWN : '',
                 scope: process.env.NGSI_SCOPE ? process.env.NGSI_SCOPE : "openid",
+                xApiKey: process.env.NGSI_X_API_KEY ? process.env.NGSI_X_API_KEY : undefined,
+                serverBaseUrl: process.env.SERVER_BASE_URL ? process.env.SERVER_BASE_URL : "http://localhost:3001/",
+                serverPort: process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : Number(3001),
+                publicBaseUrl: process.env.PUBLIC_BASE_URL ? process.env.PUBLIC_BASE_URL : (process.env.SERVER_BASE_URL ? process.env.SERVER_BASE_URL : "http://localhost:3001/"),
             };
         }
     }

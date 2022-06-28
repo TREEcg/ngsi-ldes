@@ -4,21 +4,42 @@
 import fetch, {RequestInfo, RequestInit, Response} from "node-fetch";
 import issuer from "../utils/OpenIdIssuer";
 import {getConfig} from "../config/config.js";
+import {Fetcher} from "./Fetcher";
 
 
 const config = getConfig();
 
-export class OIDCFetcher {
+export interface OIDCFetcherArgs {
+    /**
+     * Client ID to use
+     */
+    clientId: string;
+    /**
+     * Client Secret to use
+     */
+    clientSecret: string;
+    /**
+     * Scope to use
+     */
+    scope: string;
+}
+
+export class OIDCFetcher implements Fetcher {
+    private clientId: string;
+    private clientSecret: string;
+    private scope: string;
+
     /**
      * Access token to perform authenticated requests
      * @range {string}
      */
-    protected accessToken?: string;
+    private accessToken?: string;
 
-    public constructor() {
-        if (config.enableAuthentication) {
-            this.initAuthentication();
-        }
+    public constructor(args: OIDCFetcherArgs) {
+        this.clientId = args.clientId;
+        this.clientSecret = args.clientSecret;
+        this.scope = args.scope;
+        this.initAuthentication();
     }
     public fetch(url: RequestInfo, init?: RequestInit): Promise<Response> {
         if (config.enableAuthentication) {
