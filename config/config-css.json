@@ -60,6 +60,10 @@
               "tnl:dist/controllers/dcatController#DcatController_args_baseUrl": {
                 "@id": "urn:solid-server:default:variable:publicBaseUrl",
                 "@type": "Variable"
+              },
+              "tnl:dist/controllers/dcatController#DcatController_args_fetcher": {
+                "@id": "urn:solid-server:default:fetcher",
+                "@type": "Variable"
               }
             }
           },
