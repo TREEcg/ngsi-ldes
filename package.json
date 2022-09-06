@@ -1,9 +1,9 @@
 {
   "name": "@treecg/ngsi-ldes",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "private": true,
   "scripts": {
-    "start": "node bin/server.js",
+    "start": "tsc & node bin/server.js",
     "watch-node": "nodemon lib/*",
     "serve-debug": "nodemon --inspect lib/app.js",
     "lint": "tslint --project .",

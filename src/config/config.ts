@@ -25,11 +25,9 @@ interface IConfig {
 let config: IConfig;
 export function getConfig(): IConfig {
     if (!config) {
-        if (!process.env.NGSI_HOST
-        || !process.env.NGSI_TYPES) {
-            throw Error("Env variable NGSI_HOST or NGSI_TYPES must be provided.")
-        }
-        else if (process.env.NGSI_ISAUTHENTICATED &&
+        if (!process.env.NGSI_HOST) {
+            throw Error("Env variable NGSI_HOST must be provided.")
+        } else if (process.env.NGSI_ISAUTHENTICATED &&
             (
                 (!process.env.NGSI_CLIENT_ID || !process.env.NGSI_CLIENT_SECRET || !process.env.NGSI_AUTHORIZATIONWELLKNOWN)
                 &&  (!process.env.NGSI_X_API_KEY)
@@ -38,7 +36,7 @@ export function getConfig(): IConfig {
         } else {
             config = {
                 sourceURI: process.env.NGSI_HOST,
-                types: process.env.NGSI_TYPES.split(' '),
+                types: process.env.NGSI_TYPES ? process.env.NGSI_TYPES.split(' '): [],
                 useTimeAt: process.env.NGSI_USETIMEAT === 'true' ? true : false,
                 useCountIsTrue: process.env.NGSI_USECOUNTISTRUE === 'true' ? true : false,
                 temporalLimit: process.env.API_LIMIT ? Number(process.env.API_LIMIT) : 10,

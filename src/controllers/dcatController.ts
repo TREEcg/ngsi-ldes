@@ -38,36 +38,60 @@ export class DcatController extends HttpHandler {
     }
 
     async getDcatPage(req: HttpRequest, res: HttpResponse) {
+        const defaultContext = ["https://data.vlaanderen.be/doc/applicatieprofiel/DCAT-AP-VL/erkendestandaard/2021-12-02/context/DCAT-AP-VL-20.jsonld", {
+            "dcterms": "http://purl.org/dc/terms/",
+            "ldes": "https://w3id.org/ldes#",
+            "tree": "https://w3id.org/tree#",
+            "tree:view": {
+                "@type": "@id"
+            },
+            "sh": "https://www.w3.org/ns/shacl#",
+            "NodeShape":"sh:NodeShape",
+            "shape":"tree:shape",
+            "sh:nodeKind": {
+                "@type":"@id"
+            },
+            "sh:path":{
+                "@type":"@id"
+            },
+            "sh:datatype": {
+                "@type":"@id"
+            },
+            "sh:class": {
+                "@type":"@id"
+            }
+        }];
         const md: any = {
-            "@context": ["https://data.vlaanderen.be/doc/applicatieprofiel/DCAT-AP-VL/erkendestandaard/2021-12-02/context/DCAT-AP-VL-20.jsonld", {
-                "dcterms": "http://purl.org/dc/terms/",
-                "ldes": "https://w3id.org/ldes#",
-                "tree": "https://w3id.org/tree#",
-                "tree:view": {
-                    "@type": "@id"
-                }
-            }],
+            "@context": defaultContext,
             "@id": this.baseUrl + "dcat/ngsi-ldes",
             "@type": "Datasetcatalogus",
-            "Datasetcatalogus.titel": {
+            "Catalogus.titel": {
                 "@value": "Catalogus NGSI-LDES",
                 "@language": "nl"
             },
-            "Datasetcatalogus.beschrijving": {
+            "Catalogus.beschrijving": {
                 "@value": "Catalogus van datasets bovenop NGSI-LD broker.",
                 "@language": "nl",
             },
-            "Datasetcatalogus.heeftLicentie": {
+            "Catalogus.licentie": {
                 "@id": "https://creativecommons.org/publicdomain/zero/1.0/"
             },
-            "Datasetcatalogus.heeftDataset": [],
-            "Datasetcatalogus.heeftService": []
+            "Catalogus.heeftDataset": [],
+            "Catalogus.heeftDataService": []
         };
 
-        const types = await this.getTypes();
+        const typesEndpoint = `${getConfig().sourceURI}/types`;
+        const typesResponse = await this.getTypesResponse(typesEndpoint);
+        const types = await this.getTypes(typesEndpoint, typesResponse);
+        const context = await this.getContext(typesResponse);
+        if (context && Array.isArray(context)) {
+            for (const c of context) {
+                md["@context"].push(c);
+            }
+        }
+        else if (context) md["@context"].push(context);
         for (const type of types) {
             const expandedType = type.id;
-            if (expandedType.indexOf('ngsi-ld:') !== -1) expandedType.replace('ngsi-ld:', 'https://uri.etsi.org/ngsi-ld/');
             const encodedExpandedType: string = encodeURIComponent(expandedType);
             const hierarchicalView: string = this.baseUrl + "hierarchical?type=" + encodedExpandedType;
             const datasetURI: string = this.baseUrl + "dataset?type=" + encodedExpandedType;
@@ -87,9 +111,10 @@ export class DcatController extends HttpHandler {
                     "@value": beschrijving,
                     "@language": "nl",
                 },
-                "Dataset.toegankelijkheid": "http://publications.europa.eu/resource/authority/access-right/PUBLIC"
+                "Dataset.toegankelijkheid": "http://publications.europa.eu/resource/authority/access-right/PUBLIC",
+                "tree:shape": this.generateShape(type)
             };
-            md["Datasetcatalogus.heeftDataset"].push(dataset);
+            md["Catalogus.heeftDataset"].push(dataset);
 
             const service = {
                 "@type": ["ldes:EventSource", "Dataservice"],
@@ -101,7 +126,7 @@ export class DcatController extends HttpHandler {
                 }
             };
 
-            md["Datasetcatalogus.heeftService"].push(service);
+            md["Catalogus.heeftDataService"].push(service);
         }
 
         res.setHeader("Content-Type", "application/ld+json; charset=utf-8");
@@ -109,16 +134,27 @@ export class DcatController extends HttpHandler {
 
         res.end(JSON.stringify(md));
     }
-
-    async getTypes(): Promise<any[]> {
-        const types = [];
-        const typesEndpoint = 'http://localhost:9090/ngsi-ld/v1/types';
-        const response = await this.fetcher.fetch(typesEndpoint);
+    async getTypesResponse(typesEndpoint: string): Promise<any> {
+        const response = await this.fetcher.fetch(typesEndpoint, {
+            'headers': {
+                'Accept': 'application/ld+json'
+            }
+        });
         const typesResponse = await response.json();
+        return typesResponse;
+    }
 
+    async getTypes(typesEndpoint: string, typesResponse: any): Promise<any[]> {
+        const types = [];
         if (typesResponse.typeList) {
-            for (const type of typesResponse.typeList) {
-                const typeInfo = await this.fetcher.fetch(typesEndpoint + '/' + encodeURIComponent(type));
+            if (Array.isArray(typesResponse.typeList)) {
+                for (const type of typesResponse.typeList) {
+                    const typeInfo = await this.fetcher.fetch(`${typesEndpoint}/${encodeURIComponent(type)}`);
+                    const typeInfoJson = await typeInfo.json();
+                    types.push(typeInfoJson);
+                }
+            } else if (typesResponse.typeList) {
+                const typeInfo = await this.fetcher.fetch(`${typesEndpoint}/${encodeURIComponent(typesResponse.typeList)}`);
                 const typeInfoJson = await typeInfo.json();
                 types.push(typeInfoJson);
             }
@@ -132,5 +168,39 @@ export class DcatController extends HttpHandler {
             }
         }
         return types;
+    }
+
+    async getContext(typesResponse: any): Promise<any> {
+        try {
+            return typesResponse['@context'];
+        } catch (e) {
+            return null;
+        }
+    }
+
+    generateShape(typeInfo: any): any {
+        let shape: any;
+        if (typeInfo && typeInfo.attributeDetails) {
+            const expandedType = typeInfo.id;
+            const encodedExpandedType: string = encodeURIComponent(expandedType);
+            const shapeURI: string = this.baseUrl + "shape?type=" + encodedExpandedType;
+
+            shape = {
+                "@id": shapeURI,
+                "@type": "NodeShape",
+                "sh:targetClass": expandedType,
+                "sh:property": []
+            };
+
+            if (typeInfo.attributeDetails) {
+                for (const attr of typeInfo.attributeDetails) {
+                    shape['sh:property'].push({
+                        "sh:path": attr.id
+                    });
+                }
+            }
+        }
+
+        return shape;
     }
 }
