@@ -21,6 +21,7 @@ interface IConfig {
     serverPort: number;
     publicBaseUrl: string;
     maxAgeMutableFragments: number;
+    notifyContextRegistry: string | undefined;
 }
 
 let config: IConfig;
@@ -54,7 +55,8 @@ export function getConfig(): IConfig {
                 serverBaseUrl: process.env.SERVER_BASE_URL ? process.env.SERVER_BASE_URL : "http://localhost:3001/",
                 serverPort: process.env.SERVER_PORT ? Number(process.env.SERVER_PORT) : Number(3001),
                 publicBaseUrl: process.env.PUBLIC_BASE_URL ? process.env.PUBLIC_BASE_URL : (process.env.SERVER_BASE_URL ? process.env.SERVER_BASE_URL : "http://localhost:3001/"),
-                maxAgeMutableFragments: process.env.MAX_AGE_MUTABLE_FRAGMENTS ? Number(process.env.MAX_AGE_MUTABLE_FRAGMENTS) : 5
+                maxAgeMutableFragments: process.env.MAX_AGE_MUTABLE_FRAGMENTS ? Number(process.env.MAX_AGE_MUTABLE_FRAGMENTS) : 5,
+                notifyContextRegistry: process.env.NOTIFY_CONTEXT_REGISTRY ? process.env.NOTIFY_CONTEXT_REGISTRY : undefined
             };
         }
     }
