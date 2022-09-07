@@ -285,7 +285,7 @@ export class HierarchicalViewController extends HttpHandler {
             res.setHeader("Cache-Control", `public, max-age=${60 * 60 * 24}`);
         } else {
             // unstable fragments are cached for 5 seconds
-            res.setHeader("Cache-Control", "public, max-age=5");
+            res.setHeader("Cache-Control", `public, max-age=${getConfig().maxAgeMutableFragments}`);
         }
     }
 }
