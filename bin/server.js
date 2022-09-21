@@ -24,6 +24,7 @@ start();
 async function start() {
     const manager = await ComponentsManager.build({
         mainModulePath: __dirname + '/..', // Path to your npm package's root
+        typeChecking: false,
     });
     await manager.configRegistry.register(__dirname + '/../config/config-css.json');
     const myInstance = await manager.instantiate('urn:solid-server:default:App', {
@@ -31,8 +32,9 @@ async function start() {
             "urn:solid-server:default:variable:baseUrl": config.serverBaseUrl,
             "urn:solid-server:default:variable:port": config.serverPort,
             "urn:solid-server:default:variable:loggingLevel": "info",
-            "urn:solid-server:default:variable:publicBaseUrl": config.publicBaseUrl,
-            "urn:solid-server:default:fetcher": fetcher
+            "urn:solid-server:default:variable:baseUrl": config.publicBaseUrl,
+            "urn:solid-server:default:fetcher": fetcher,
+            'urn:solid-server:default:variable:showStackTrace': true
         }
     });
     myInstance.start();
