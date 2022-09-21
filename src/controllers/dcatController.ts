@@ -20,6 +20,20 @@ export interface DcatControllerArgs {
     fetcher: Fetcher;
 }
 
+interface EntityInfo {
+    id?: string,
+    idPattern?: string,
+    type: string | string[]
+}
+
+interface RegistrationInfo {
+    entities?: EntityInfo[],
+    propertyNames?: string[],
+    relationshipNames?: string[],
+    properties?: string[], // Suggested by Scorpio
+    relationships?: string[] // Suggested by Scorpio
+}
+
 export class DcatController extends HttpHandler {
     private readonly baseUrl: string;
     private readonly fetcher: Fetcher;
@@ -42,7 +56,8 @@ export class DcatController extends HttpHandler {
 
     async getDcatPage(req: HttpRequest, res: HttpResponse) {
         // 1. Setup default context and DCAT Catalogue
-        const defaultContext = ["https://data.vlaanderen.be/doc/applicatieprofiel/DCAT-AP-VL/erkendestandaard/2021-12-02/context/DCAT-AP-VL-20.jsonld", {
+        const defaultContext = ["https://data.vlaanderen.be/doc/applicatieprofiel/DCAT-AP-VL/erkendestandaard/2021-12-02/context/DCAT-AP-VL-20.jsonld",
+            "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld", {
             "dcterms": "http://purl.org/dc/terms/",
             "ldes": "https://w3id.org/ldes#",
             "tree": "https://w3id.org/tree#",
@@ -86,22 +101,12 @@ export class DcatController extends HttpHandler {
                 "@id": "https://creativecommons.org/publicdomain/zero/1.0/"
             },
             "Catalogus.heeftDataset": [],
-            "Catalogus.heeftDataService": [],
-            "Catalogus.heeftCatalogus": []
+            "Catalogus.heeftDataService": []
         };
 
         const typesEndpoint = `${getConfig().sourceURI}/types`;
         const typesResponse = await this.getResponse(typesEndpoint);
-        // 2. Add @context from broker
-        const context = await this.getContext(typesResponse);
-        if (context && Array.isArray(context)) {
-            for (const c of context) {
-                md["@context"].push(c);
-            }
-        }
-        else if (context) md["@context"].push(context);
-
-        // 3. Create datasets and data services from types list
+        // 2. Create datasets and data services from types list
         const types = await this.getTypes(typesEndpoint, typesResponse);
 
         for (const type of types) {
@@ -126,7 +131,7 @@ export class DcatController extends HttpHandler {
                     "@language": "nl",
                 },
                 "Dataset.toegankelijkheid": "http://publications.europa.eu/resource/authority/access-right/PUBLIC",
-                "tree:shape": this.generateShape(type)
+                "tree:shape": this.generateShapeFromTypeInfo(type)
             };
             md["Catalogus.heeftDataset"].push(dataset);
 
@@ -152,13 +157,28 @@ export class DcatController extends HttpHandler {
             md["Catalogus.heeftDataService"].push(ngsiLdService);
         }
 
-        // 4. Create catalogues from context sources based on the dcat info property
+        // 4. Add Context Sources from Context Registry
         const csourceRegistrationsEndpoint = `${getConfig().sourceURI}/csourceRegistrations?limit=1000`;
         const csourceRegistrationsResponse = await this.getResponse(csourceRegistrationsEndpoint);
-        for (const csource of csourceRegistrationsResponse) {
-            if (csource.contextSourceInfo && csource.contextSourceInfo.dcat) {
-               const dcat = csource.contextSourceInfo.dcat;
-               if (!md["Catalogus.heeftCatalogus"].includes(dcat)) md["Catalogus.heeftCatalogus"].push(dcat);
+        if (this.isIterable(csourceRegistrationsResponse)) {
+            for (const csource of csourceRegistrationsResponse) {
+                if (csource && csource.information && csource.endpoint) {
+                    for (const registrationInfo of csource.information) {
+                        // const expandedType = type.id;
+                        // const encodedExpandedType: string = encodeURIComponent(expandedType);
+                        const ngsiLdService = {
+                            "@type": ["Dataservice"],
+                            "Dataservice.endpointUrl": csource.endpoint,
+                            "Dataservice.biedtInformatieAanOver": {
+                                "@type": "Dataset",
+                                "tree:shape": this.generateShapeFromRegistrationInfo(registrationInfo)
+                            },
+                            "Dataservice.conformAanProtocol": "https://uri.etsi.org/ngsi-ld/"
+                        };
+
+                        md["Catalogus.heeftDataService"].push(ngsiLdService);
+                    }
+                }
             }
         }
 
@@ -168,6 +188,13 @@ export class DcatController extends HttpHandler {
         res.end(JSON.stringify(md));
     }
 
+    isIterable(obj: any) {
+        // checks for null and undefined
+        if (obj == null) {
+            return false;
+        }
+        return typeof obj[Symbol.iterator] === 'function';
+    }
     async notifyContextRegistry() {
         if (getConfig().notifyContextRegistry) {
             console.log("Sending request to context registry " + getConfig().notifyContextRegistry);
@@ -205,13 +232,14 @@ export class DcatController extends HttpHandler {
         }
     }
 
-    async getResponse(endpoint: string): Promise<any> {
-        const response = await this.fetcher.fetch(endpoint, {
-            'headers': {
-                'Accept': 'application/ld+json'
-            }
-        });
-        return await response.json();
+    async getResponse(endpoint: string, options?: any): Promise<any> {
+        try {
+            const response = await this.fetcher.fetch(endpoint, options);
+            return await response.json();
+        } catch (error) {
+            console.error("The HTTP request failed.");
+            return undefined;
+        }
     }
 
     async getTypes(typesEndpoint: string, typesResponse: any): Promise<any[]> {
@@ -248,7 +276,7 @@ export class DcatController extends HttpHandler {
         }
     }
 
-    generateShape(typeInfo: any): any {
+    generateShapeFromTypeInfo(typeInfo: any): any {
         let shape: any;
         if (typeInfo && typeInfo.attributeDetails) {
             const expandedType = typeInfo.id;
@@ -268,6 +296,84 @@ export class DcatController extends HttpHandler {
                         "sh:path": attr.id
                     });
                 }
+            }
+        }
+
+        return shape;
+    }
+
+    generateShapeFromRegistrationInfo(registrationInfo: RegistrationInfo): any {
+        const shape: any = {
+            "@type": "NodeShape",
+            "sh:targetClass": [],
+            "sh:property": []
+        };
+        const targetClasses = [];
+        const properties = [];
+
+        if (registrationInfo.entities) {
+            for (const entity of registrationInfo.entities) {
+                if (entity.type) {
+                    if (Array.isArray(entity.type)) {
+                        for (const type of entity.type) {
+                            shape["sh:targetClass"].push(type);
+                        }
+                    } else {
+                        shape["sh:targetClass"].push(entity.type);
+                    }
+                }
+            }
+        }
+
+        if (registrationInfo.propertyNames) {
+            if (Array.isArray(registrationInfo.propertyNames)) {
+                for (const property of registrationInfo.propertyNames) {
+                    shape["sh:property"].push({
+                        "sh:path": property
+                    });
+                }
+            } else {
+                shape["sh:property"].push({
+                    "sh:path": registrationInfo.propertyNames
+                });
+            }
+        } else if (registrationInfo.properties) {
+            if (Array.isArray(registrationInfo.properties)) {
+                for (const property of registrationInfo.properties) {
+                    shape["sh:property"].push({
+                        "sh:path": property
+                    });
+                }
+            } else {
+                shape["sh:property"].push({
+                    "sh:path": registrationInfo.properties
+                });
+            }
+        }
+
+        if (registrationInfo.relationshipNames) {
+            if (Array.isArray(registrationInfo.relationshipNames)) {
+                for (const relationship of registrationInfo.relationshipNames) {
+                    shape["sh:properties"].push({
+                        "sh:path": relationship
+                    });
+                }
+            } else {
+                shape["sh:properties"].push({
+                    "sh:path": registrationInfo.relationshipNames
+                });
+            }
+        } else if (registrationInfo.relationships) {
+            if (Array.isArray(registrationInfo.relationships)) {
+                for (const relationship of registrationInfo.relationships) {
+                    shape["sh:property"].push({
+                        "sh:path": relationship
+                    });
+                }
+            } else {
+                shape["sh:property"].push({
+                    "sh:path": registrationInfo.relationships
+                });
             }
         }
 
