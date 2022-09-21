@@ -1,12 +1,29 @@
 {
   "@context": [
-    "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^3.0.0/components/context.jsonld",
+    "https://linkedsoftwaredependencies.org/bundles/npm/@solid/community-server/^5.0.0/components/context.jsonld",
     "https://linkedsoftwaredependencies.org/bundles/npm/@treecg/ngsi-ldes/^0.0.0/components/context.jsonld"
   ],
   "import": [
-    "files-scs:config/app/main/default.json"
+    "css:config/http/middleware/no-websockets.json",
+    "css:config/http/server-factory/no-websockets.json",
+    "css:config/util/variables/default.json"
   ],
   "@graph": [
+    {
+      "@id": "urn:solid-server:default:TargetExtractor",
+      "@type": "OriginalUrlExtractor",
+      "args_identifierStrategy": { "@id": "urn:solid-server:default:IdentifierStrategy",
+        "@type": "SingleRootIdentifierStrategy",
+        "baseUrl": { "@id": "urn:solid-server:default:variable:baseUrl" }
+      },
+      "args_includeQueryString": true
+    },
+    {
+    "comment": "This is the entry point to the application. It can be used to both start and stop the server.",
+    "@id": "urn:solid-server:default:App",
+    "@type": "App",
+    "initializer": { "@id": "urn:solid-server:default:Initializer" }
+    },
     {
     "comment": "These initializers will be all be executed sequentially when starting the server.",
     "@id": "urn:solid-server:default:Initializer",
@@ -19,8 +36,7 @@
           "@id": "urn:solid-server:default:LoggerFactory",
           "@type": "WinstonLoggerFactory",
           "level": {
-            "@id": "urn:solid-server:default:variable:loggingLevel",
-            "@type":  "Variable"
+            "@id": "urn:solid-server:default:variable:loggingLevel"
           }
         }
       },
@@ -28,73 +44,76 @@
         "@type": "ServerInitializer",
         "serverFactory": { "@id": "urn:solid-server:default:ServerFactory" },
         "port": {
-          "@id": "urn:solid-server:default:variable:port",
-          "@type": "Variable"
+          "@id": "urn:solid-server:default:variable:port"
         }
       }
     ]},
     {
-      "comment": "Creates a server that supports HTTP requests.",
-      "@id": "urn:solid-server:default:ServerFactory",
-      "@type": "BaseHttpServerFactory",
-      "handler": {
         "@id": "urn:solid-server:default:HttpHandler",
-        "@type": "WaterfallHandler",
+        "@type": "SequenceHandler",
         "handlers": [
+          { "@id": "urn:solid-server:default:Middleware" },
           {
-            "@id": "urn:solid-server:default:DcatHandler",
-            "@type": "RouterHandler",
-            "args_baseUrl": {
-              "@id": "urn:solid-server:default:variable:baseUrl",
-              "@type": "Variable"
-            },
-            "args_targetExtractor": {
-              "@id": "urn:solid-server:default:TargetExtractor",
-              "@type": "OriginalUrlExtractor",
-              "options_includeQueryString": true
-            },
-            "args_allowedMethods": [ "GET" ],
-            "args_allowedPathNames": [ "^/$", "^/dcat", "^/dataset.*$" ],
-            "args_handler": {
-              "@type": "DcatController",
-              "tnl:dist/controllers/dcatController#DcatController_args_baseUrl": {
-                "@id": "urn:solid-server:default:variable:publicBaseUrl",
-                "@type": "Variable"
+            "@type": "WaterfallHandler",
+            "handlers": [
+              {
+                "@id": "urn:solid-server:default:DcatHandler",
+                "@type": "RouterHandler",
+                "args_baseUrl": {
+                  "@id": "urn:solid-server:default:variable:baseUrl"
+                },
+                "args_targetExtractor": {
+                  "@id": "urn:solid-server:default:TargetExtractor"
+                },
+                "args_allowedMethods": [
+                  "GET"
+                ],
+                "args_allowedPathNames": [
+                  "^/$",
+                  "^/dcat",
+                  "^/dataset.*$"
+                ],
+                "args_handler": {
+                  "@type": "tnl:dist/controllers/dcatController.jsonld#DcatController",
+                  "tnl:dist/controllers/dcatController.jsonld#DcatController_args_baseUrl": {
+                    "@id": "urn:solid-server:default:variable:baseUrl"
+                  },
+                  "tnl:dist/controllers/dcatController.jsonld#DcatController_args_fetcher": {
+                    "@id": "urn:solid-server:default:fetcher",
+                    "@type": "Variable"
+                  }
+                }
               },
-              "tnl:dist/controllers/dcatController#DcatController_args_fetcher": {
-                "@id": "urn:solid-server:default:fetcher",
-                "@type": "Variable"
+              {
+                "@id": "urn:solid-ldes:default:HierarchicalViewHandler",
+                "@type": "RouterHandler",
+                "args_baseUrl": {
+                  "@id": "urn:solid-server:default:variable:baseUrl"
+                },
+                "args_targetExtractor": {
+                  "@id": "urn:solid-server:default:TargetExtractor"
+                },
+                "args_allowedMethods": [
+                  "GET"
+                ],
+                "args_allowedPathNames": [
+                  "^/hierarchical"
+                ],
+                "args_handler": {
+                  "@id": "urn:solid-ldes:default:hierarchicalViewController",
+                  "@type": "HierarchicalViewController",
+                  "tnl:dist/controllers/hierarchicalViewController.jsonld#HierarchicalViewController_args_fetcher": {
+                    "@id": "urn:solid-server:default:fetcher",
+                    "@type": "Variable"
+                  },
+                  "tnl:dist/controllers/hierarchicalViewController.jsonld#HierarchicalViewController_args_baseUrl": {
+                    "@id": "urn:solid-server:default:variable:baseUrl"
+                  }
+                }
               }
-            }
-          },
-          {
-            "@id": "urn:solid-server:default:HierarchicalViewHandler",
-            "@type": "RouterHandler",
-            "args_baseUrl": {
-              "@id": "urn:solid-server:default:variable:baseUrl",
-              "@type": "Variable"
-            },
-            "args_targetExtractor": {
-              "@id": "urn:solid-server:default:TargetExtractor",
-              "@type": "OriginalUrlExtractor",
-              "options_includeQueryString": true
-            },
-            "args_allowedMethods": [ "GET" ],
-            "args_allowedPathNames": [ "^/hierarchical" ],
-            "args_handler": {
-              "@type": "HierarchicalViewController",
-              "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_fetcher": {
-                "@id": "urn:solid-server:default:fetcher",
-                "@type": "Variable"
-              },
-              "tnl:dist/controllers/hierarchicalViewController#HierarchicalViewController_args_baseUrl": {
-                "@id": "urn:solid-server:default:variable:publicBaseUrl",
-                "@type": "Variable"
-              }
-            }
+            ]
           }
         ]
       }
-    }
   ]
 }
