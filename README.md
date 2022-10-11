@@ -31,7 +31,7 @@ yarn start
 
 Or with Docker:
 ```
-docker build -t ngsi-ldes .
+docker build -t ngsi-ldes -f Dockerfile-ngsi-ldes .
 docker run --env-file .env -p 3001:3001 -d ngsi-ldes
 ```
 Go to `http://localhost:3001` to have a DCAT overview of LDESs.
@@ -40,7 +40,9 @@ Go to `http://localhost:3001` to have a DCAT overview of LDESs.
 
 You can test a full setup with Scorpio using Docker compose:
 ```
+docker build -t reverseproxy -f Dockerfile-nginx-alpine .
 docker-compose -f scorpio-aaio.yml up
 ```
+Dockerfile-nginx-alpine generates a reverse proxy that will be used on top of the NGSI-LD broker and NGSI-LDES allowing HTTP caching.
 Note that the environment variables are configurable inside this yaml file.
-Go to `http://localhost:3001` to have a DCAT overview of LDESs.
+Go to `http://localhost:8081` to access the NGSI-LDES DCAT overview through the reverse proxy.
