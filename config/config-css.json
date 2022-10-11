@@ -76,7 +76,7 @@
                 "args_handler": {
                   "@type": "tnl:dist/controllers/dcatController.jsonld#DcatController",
                   "tnl:dist/controllers/dcatController.jsonld#DcatController_args_baseUrl": {
-                    "@id": "urn:solid-server:default:variable:baseUrl"
+                    "@id": "urn:solid-server:default:variable:publicBaseUrl"
                   },
                   "tnl:dist/controllers/dcatController.jsonld#DcatController_args_fetcher": {
                     "@id": "urn:solid-server:default:fetcher",
@@ -107,7 +107,8 @@
                     "@type": "Variable"
                   },
                   "tnl:dist/controllers/hierarchicalViewController.jsonld#HierarchicalViewController_args_baseUrl": {
-                    "@id": "urn:solid-server:default:variable:baseUrl"
+                    "@id": "urn:solid-server:default:variable:publicBaseUrl",
+                    "@type": "Variable"
                   }
                 }
               }

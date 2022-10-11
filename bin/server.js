@@ -31,8 +31,8 @@ async function start() {
         variables: {
             "urn:solid-server:default:variable:baseUrl": config.serverBaseUrl,
             "urn:solid-server:default:variable:port": config.serverPort,
-            "urn:solid-server:default:variable:loggingLevel": "info",
-            "urn:solid-server:default:variable:baseUrl": config.publicBaseUrl,
+            "urn:solid-server:default:variable:loggingLevel": "debug",
+            "urn:solid-server:default:variable:publicBaseUrl": config.publicBaseUrl,
             "urn:solid-server:default:fetcher": fetcher,
             'urn:solid-server:default:variable:showStackTrace': true
         }
