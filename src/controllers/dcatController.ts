@@ -70,6 +70,9 @@ export class DcatController extends HttpHandler {
             "sh:nodeKind": {
                 "@type":"@id"
             },
+            "sh:targetClass": {
+                "@type": "@id"
+            },
             "sh:path":{
                 "@type":"@id"
             },
@@ -106,61 +109,64 @@ export class DcatController extends HttpHandler {
 
         const typesEndpoint = `${getConfig().sourceURI}/types`;
         const typesResponse = await this.getResponse(typesEndpoint);
-        // 2. Create datasets and data services from types list
-        const types = await this.getTypes(typesEndpoint, typesResponse);
 
-        for (const type of types) {
-            const expandedType = type.id;
-            const encodedExpandedType: string = encodeURIComponent(expandedType);
-            const hierarchicalView: string = this.baseUrl + "hierarchical?type=" + encodedExpandedType;
-            const datasetURI: string = this.baseUrl + "dataset?type=" + encodedExpandedType;
-            const beschrijving: string = `Event Stream van entiteiten van het type: ${expandedType}`;
-            const dataset = {
-                "@id": datasetURI,
-                "@type": [
-                    "Dataset",
-                    "ldes:EventStream",
-                ],
-                "tree:view": [ hierarchicalView ],
-                "Dataset.titel": {
-                    "@value": beschrijving,
-                    "@language": "nl",
-                },
-                "Dataset.beschrijving": {
-                    "@value": beschrijving,
-                    "@language": "nl",
-                },
-                "Dataset.toegankelijkheid": "http://publications.europa.eu/resource/authority/access-right/PUBLIC",
-                "tree:shape": this.generateShapeFromTypeInfo(type)
-            };
-            md["Catalogus.heeftDataset"].push(dataset);
+        if (typesResponse) {
+            // 2. Create datasets and data services from types list
+            const types = await this.getTypes(typesEndpoint, typesResponse);
 
-            const eventSourceService = {
-                "@type": ["ldes:EventSource", "Dataservice"],
-                "Dataservice.biedtInformatieAanOver": datasetURI,
-                "Dataservice.endpointUrl": hierarchicalView,
-                "Dataservice.conformAanProtocol": "https://w3id.org/ldes",
-                "Dataservice.licentie": {
-                    "@id": "https://creativecommons.org/publicdomain/zero/1.0/"
-                }
-            };
+            for (const type of types) {
+                const expandedType = type.id;
+                const encodedExpandedType: string = encodeURIComponent(expandedType);
+                const hierarchicalView: string = this.baseUrl + "hierarchical?type=" + encodedExpandedType;
+                const datasetURI: string = this.baseUrl + "dataset?type=" + encodedExpandedType;
+                const beschrijving: string = `Event Stream van entiteiten van het type: ${expandedType}`;
+                const dataset = {
+                    "@id": datasetURI,
+                    "@type": [
+                        "Dataset",
+                        "ldes:EventStream",
+                    ],
+                    "tree:view": [hierarchicalView],
+                    "Dataset.titel": {
+                        "@value": beschrijving,
+                        "@language": "nl",
+                    },
+                    "Dataset.beschrijving": {
+                        "@value": beschrijving,
+                        "@language": "nl",
+                    },
+                    "Dataset.toegankelijkheid": "http://publications.europa.eu/resource/authority/access-right/PUBLIC",
+                    "tree:shape": this.generateShapeFromTypeInfo(type)
+                };
+                md["Catalogus.heeftDataset"].push(dataset);
 
-            md["Catalogus.heeftDataService"].push(eventSourceService);
+                const eventSourceService = {
+                    "@type": ["ldes:EventSource", "Dataservice"],
+                    "Dataservice.biedtInformatieAanOver": datasetURI,
+                    "Dataservice.endpointUrl": hierarchicalView,
+                    "Dataservice.conformAanProtocol": "https://w3id.org/ldes",
+                    "Dataservice.licentie": {
+                        "@id": "https://creativecommons.org/publicdomain/zero/1.0/"
+                    }
+                };
 
-            const ngsiLdService = {
-                "@type": ["Dataservice"],
-                "Dataservice.biedtInformatieAanOver": datasetURI,
-                "Dataservice.endpointUrl": getConfig().sourceURI,
-                "Dataservice.conformAanProtocol": "https://uri.etsi.org/ngsi-ld/"
-            };
+                md["Catalogus.heeftDataService"].push(eventSourceService);
 
-            md["Catalogus.heeftDataService"].push(ngsiLdService);
+                const ngsiLdService = {
+                    "@type": ["Dataservice"],
+                    "Dataservice.biedtInformatieAanOver": datasetURI,
+                    "Dataservice.endpointUrl": getConfig().sourceURI,
+                    "Dataservice.conformAanProtocol": "https://uri.etsi.org/ngsi-ld/"
+                };
+
+                md["Catalogus.heeftDataService"].push(ngsiLdService);
+            }
         }
 
         // 4. Add Context Sources from Context Registry
         const csourceRegistrationsEndpoint = `${getConfig().sourceURI}/csourceRegistrations?limit=1000`;
         const csourceRegistrationsResponse = await this.getResponse(csourceRegistrationsEndpoint);
-        if (this.isIterable(csourceRegistrationsResponse)) {
+        if (csourceRegistrationsResponse && this.isIterable(csourceRegistrationsResponse)) {
             for (const csource of csourceRegistrationsResponse) {
                 if (csource && csource.information && csource.endpoint) {
                     for (const registrationInfo of csource.information) {
@@ -196,39 +202,44 @@ export class DcatController extends HttpHandler {
         return typeof obj[Symbol.iterator] === 'function';
     }
     async notifyContextRegistry() {
-        if (getConfig().notifyContextRegistry) {
+        const contextRegistry = getConfig().notifyContextRegistry;
+        // Don't register when context registry is same as our NGSI-LD source
+        if (contextRegistry && contextRegistry !== getConfig().sourceURI) {
             console.log("Sending request to context registry " + getConfig().notifyContextRegistry);
             const typesEndpoint = `${getConfig().sourceURI}/types`;
+            console.log("Retrieve types from: " + typesEndpoint);
             const typesResponse = await this.getResponse(typesEndpoint);
-            const typeList = await this.getTypes(typesEndpoint, typesResponse);
-            const entities = [];
-            for (const type of typeList) {
-                entities.push({
-                    'type': type.id
+            if (typesResponse) {
+                const typeList = await this.getTypes(typesEndpoint, typesResponse);
+                const entities = [];
+                for (const type of typeList) {
+                    entities.push({
+                        'type': type.id
+                    });
+                }
+                const csourceRegistrationId = 'urn:ngsi-ld:ContextSourceRegistration:ngsi-ldes-' + encodeURIComponent(getConfig().sourceURI + '-' + new Date().getTime());
+                const body = {
+                    "id": csourceRegistrationId,
+                    "type": "ContextSourceRegistration",
+                    "endpoint": getConfig().sourceURI,
+                    "information": [{
+                        "entities": entities
+                    }],
+                    "contextSourceInfo": {
+                        "dcat": getConfig().publicBaseUrl
+                    },
+                    "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
+                };
+                const notifyRegistryUrl = getConfig().notifyContextRegistry! + '/csourceRegistrations';
+                const response = await this.getResponse(notifyRegistryUrl, {
+                    'body': JSON.stringify(body),
+                    'headers': {
+                        'Content-Type': 'application/ld+json'
+                    },
+                    'method': 'POST'
                 });
+                if (response && response.statusText) console.log("Context registry notified: " + response.statusText);
             }
-            const csourceRegistrationId = 'urn:ngsi-ld:ContextSourceRegistration:ngsi-ldes-' + encodeURIComponent(getConfig().sourceURI + '-' + new Date().getTime());
-            const body = {
-                "id": csourceRegistrationId,
-                "type": "ContextSourceRegistration",
-                "endpoint": getConfig().sourceURI,
-                "information": [{
-                    "entities": entities
-                }],
-                "contextSourceInfo": {
-                    "dcat": getConfig().publicBaseUrl
-                },
-                "@context": "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context-v1.3.jsonld"
-            };
-            const notifyRegistryUrl = getConfig().notifyContextRegistry! + '/csourceRegistrations';
-            const response = await this.fetcher.fetch(new URL(notifyRegistryUrl), {
-                'body': JSON.stringify(body),
-                'headers': {
-                    'Content-Type': 'application/ld+json'
-                },
-                'method': 'POST'
-            });
-            console.log("Context registry notified: " + response.statusText);
         }
     }
 
@@ -244,7 +255,7 @@ export class DcatController extends HttpHandler {
 
     async getTypes(typesEndpoint: string, typesResponse: any): Promise<any[]> {
         const types = [];
-        if (typesResponse.typeList) {
+        if (typesResponse && typesResponse.typeList) {
             if (Array.isArray(typesResponse.typeList)) {
                 for (const type of typesResponse.typeList) {
                     const typeInfo = await this.fetcher.fetch(`${typesEndpoint}/${encodeURIComponent(type)}`);
@@ -354,12 +365,12 @@ export class DcatController extends HttpHandler {
         if (registrationInfo.relationshipNames) {
             if (Array.isArray(registrationInfo.relationshipNames)) {
                 for (const relationship of registrationInfo.relationshipNames) {
-                    shape["sh:properties"].push({
+                    shape["sh:property"].push({
                         "sh:path": relationship
                     });
                 }
             } else {
-                shape["sh:properties"].push({
+                shape["sh:property"].push({
                     "sh:path": registrationInfo.relationshipNames
                 });
             }
