@@ -57,6 +57,16 @@ services:
       POSTGRES_PASSWORD: ngb
       POSTGRES_DB: ngb
 
+  reverseproxy:
+    image: reverseproxy
+    ports:
+      - 8080:8080
+      - 8081:8081
+    depends_on:
+      - scorpio
+      - ngsi-ldes
+    restart: always
+
   scorpio:
     image: scorpiobroker/scorpio:scorpio-aaio-no-eureka_latest
     hostname: scorpio
@@ -79,8 +89,10 @@ services:
       - default
     ports:
       - "3000"
+
   ngsi-ldes:
-    image: brechtvdv/ngsi-ldes
+    #image: brechtvdv/ngsi-ldes
+    image: ngsi-ldes
     ports:
       - "3001:3001"
     depends_on:
@@ -91,22 +103,28 @@ services:
       # Location of the NGSI-LD endpoint
       NGSI_HOST: "http://scorpio:9090/ngsi-ld/v1"
       # types that the broker contains (will be removed when /types discovery is supported) quotes voor linux bij meerdere types.
-      NGSI_TYPES: "https://uri.fiware.org/ns/data-models#Device https://uri.fiware.org/ns/data-models#DeviceModel https://uri.fiware.org/ns/data-models#WaterQualityObserved"
       # Use timeAt and endTimeAt (v1.3.1) instead of time and endTime
       NGSI_USETIMEAT: "true"
       NGSI_USECOUNTISTRUE: "true"
       # timeProperty (should be modifiedAt or observedAt)
       NGSI_TIMEPROPERTY: "modifiedAt"
+      API_ENABLE_VERSIONING: "false"
+      API_VERSION_OF_PATH: "dcterms:isVersionOf"
+      # How long mutable fragments must be cached in seconds
+      MAX_AGE_MUTABLE_FRAGMENTS: "60"
+
       # OpenID config
       NGSI_ISAUTHENTICATED: "false"
       SERVER_BASE_URL: "http://localhost:3001/"
       SERVER_PORT : "3001"
-      PUBLIC_BASE_URL: "http://localhost:3001/"
+      PUBLIC_BASE_URL: "http://localhost:8081/"
       # Limit to use and the number of entities per fragment
       API_LIMIT: "5"
       # Output KeyValues representation
       API_KEYVALUES: "true"
 
+      # URL to context registry
+      NOTIFY_CONTEXT_REGISTRY: "http://scorpio:9090/ngsi-ld/v1"
 
 networks:
   default: ~
