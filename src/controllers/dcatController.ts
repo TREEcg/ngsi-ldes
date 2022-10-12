@@ -8,6 +8,9 @@ import {
 } from "@solid/community-server";
 import {HierarchicalViewControllerArgs} from "./hierarchicalViewController";
 import {Fetcher} from "../utils/Fetcher";
+// @ts-ignore
+import { stringify } from "wkt";
+
 
 export interface DcatControllerArgs {
     /**
@@ -50,6 +53,7 @@ export class DcatController extends HttpHandler {
     handle(input: HttpHandlerInput): Promise<void> {
         return this.getDcatPage(input.request, input.response);
     }
+
     canHandle(input: HttpHandlerInput): Promise<void> {
         return super.canHandle(input);
     }
@@ -58,36 +62,45 @@ export class DcatController extends HttpHandler {
         // 1. Setup default context and DCAT Catalogue
         const defaultContext = ["https://data.vlaanderen.be/doc/applicatieprofiel/DCAT-AP-VL/erkendestandaard/2021-12-02/context/DCAT-AP-VL-20.jsonld",
             "https://uri.etsi.org/ngsi-ld/v1/ngsi-ld-core-context.jsonld", {
-            "dcterms": "http://purl.org/dc/terms/",
-            "ldes": "https://w3id.org/ldes#",
-            "tree": "https://w3id.org/tree#",
-            "tree:view": {
-                "@type": "@id"
-            },
-            "sh": "https://www.w3.org/ns/shacl#",
-            "NodeShape":"sh:NodeShape",
-            "shape":"tree:shape",
-            "sh:nodeKind": {
-                "@type":"@id"
-            },
-            "sh:targetClass": {
-                "@type": "@id"
-            },
-            "sh:path":{
-                "@type":"@id"
-            },
-            "sh:datatype": {
-                "@type":"@id"
-            },
-            "sh:class": {
-                "@type":"@id"
-            },
-            "Catalogus.heeftCatalogus": {
-                "@container": "@set",
-                "@id": "http://www.w3.org/ns/dcat#catalog",
-                "@type": "@id"
-            }
-        }];
+                "dcterms": "http://purl.org/dc/terms/",
+                "ldes": "https://w3id.org/ldes#",
+                "tree": "https://w3id.org/tree#",
+                "tree:view": {
+                    "@type": "@id"
+                },
+                "sh": "https://www.w3.org/ns/shacl#",
+                "NodeShape": "sh:NodeShape",
+                "shape": "tree:shape",
+                "sh:nodeKind": {
+                    "@type": "@id"
+                },
+                "sh:targetClass": {
+                    "@type": "@id"
+                },
+                "sh:path": {
+                    "@type": "@id"
+                },
+                "sh:datatype": {
+                    "@type": "@id"
+                },
+                "sh:class": {
+                    "@type": "@id"
+                },
+                "Catalogus.heeftCatalogus": {
+                    "@container": "@set",
+                    "@id": "http://www.w3.org/ns/dcat#catalog",
+                    "@type": "@id"
+                },
+                "spatialCoverage": {
+                    "@id": "dcat:spatial",
+                    "@type": "@id"
+                },
+                "Geometrie": "http://www.w3.org/ns/locn#Geometry",
+                "Geometrie.wkt": {
+                    "@id": "http://www.opengis.net/ont/geosparql#asWKT",
+                    "@type": "http://www.w3.org/2000/01/rdf-schema#Literal"
+                }
+            }];
         const md: any = {
             "@context": defaultContext,
             "@id": this.baseUrl + "dcat/ngsi-ldes",
@@ -181,6 +194,13 @@ export class DcatController extends HttpHandler {
                             },
                             "Dataservice.conformAanProtocol": "https://uri.etsi.org/ngsi-ld/"
                         };
+                        if (csource.location) {
+                            // @ts-ignore
+                            ngsiLdService["Dataservice.biedtInformatieAanOver"].spatialCoverage = {
+                                "@type": "Geometrie",
+                                "Geometrie.wkt": this.generateWktFromGeoJson(csource.location)
+                            }
+                        }
 
                         md["Catalogus.heeftDataService"].push(ngsiLdService);
                     }
@@ -201,6 +221,7 @@ export class DcatController extends HttpHandler {
         }
         return typeof obj[Symbol.iterator] === 'function';
     }
+
     async notifyContextRegistry() {
         const contextRegistry = getConfig().notifyContextRegistry;
         // Don't register when context registry is same as our NGSI-LD source
@@ -267,8 +288,7 @@ export class DcatController extends HttpHandler {
                 const typeInfoJson = await typeInfo.json();
                 types.push(typeInfoJson);
             }
-        }
-        else {
+        } else {
             // use config types when nothing found
             for (const type of getConfig().types) {
                 types.push({
@@ -389,5 +409,9 @@ export class DcatController extends HttpHandler {
         }
 
         return shape;
+    }
+
+    generateWktFromGeoJson(geoString: string): any {
+        return stringify(geoString);
     }
 }
