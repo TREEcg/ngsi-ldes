@@ -46,3 +46,8 @@ docker-compose -f scorpio-aaio.yml up
 Dockerfile-nginx-alpine generates a reverse proxy that will be used on top of the NGSI-LD broker and NGSI-LDES allowing HTTP caching.
 Note that the environment variables are configurable inside this yaml file.
 Go to `http://localhost:8081` to access the NGSI-LDES DCAT overview through the reverse proxy.
+
+
+## Acknowledgements
+
+This work was started thanks to the ODALA project, and further developer during the CEF GreenMov project.
